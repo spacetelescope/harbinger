@@ -1,10 +1,9 @@
-
 [cfitsio]
 plugin: relcheck_cfitsio
 
-## [rendinam/auto-test]
-## plugin: relcheck_github
-## # Valid values are
-## #   'github'
-## #   'tag-only'
-## release_style: github
+[rendinam/auto-test]
+plugin: relcheck_github
+# Valid values are
+#   'github'
+#   'tag-only'
+release_style: github

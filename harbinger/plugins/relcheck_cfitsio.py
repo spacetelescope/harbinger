@@ -6,7 +6,7 @@
 import urllib.request
 import tarfile
 
-def get_version(dep_id, config):
+def get_version(dep_id, config, extra=None):
     verinfo = {}
     latest_tar = 'cfitsio_latest.tar.gz'
     latest_URL = 'http://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/{}'.format(latest_tar)
@@ -40,7 +40,7 @@ def get_version(dep_id, config):
     return(verinfo)
     
 
-def get_changelog(ref_ver_data, new_ver_data):
+def get_changelog(ref_ver_data, new_ver_data, extra=None):
     ''' ******* Dependency-specific
     Accepts refvals object that gets returned from get_versions()'''
     fitsio_h = 'cfitsio/fitsio.h'
@@ -63,9 +63,7 @@ def get_changelog(ref_ver_data, new_ver_data):
                 continue
     ef = open(fitsio_h)
     lines = ef.readlines()
-    #ref_soname = ref_ver_data[2]
     ref_soname = ref_ver_data['soname']
-    #soname = new_ver_data[2]
     soname = new_ver_data['soname']
     if ref_soname != soname:
         changelog += '\n**NOTE: This release introduces a SONAME change from {} to {}.**'.format(

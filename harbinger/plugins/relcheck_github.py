@@ -3,9 +3,9 @@
 #   get_version()
 #   get_changelog()
 
-import github3
+#import github3
 
-def get_version(dep_id, params):
+def get_version(dep_id, params, github):
     '''Check for new release via method specified in 'params'.
     If the latest released version is later/greater than the value
     stored in the cache, return data about the release, otherwise
@@ -18,7 +18,9 @@ def get_version(dep_id, params):
     repo = dep_id.split('/')[1]
     # TODO: To prevent API limits being breached, the (authenticated) github3
     # object from the calling script will need to make an appearance here.
-    repo = github3.repository(owner, repo)
+    #repo = github3.repository(owner, repo)
+    repo = github.repository(owner, repo)
+
     # Determine the 'best' release version.
     # This will depend on how the repository is organized and how releases are done.
     # Easiest is if the repo uses Github releases consistently. Just query that.
@@ -58,6 +60,6 @@ def get_version(dep_id, params):
     return(version_info)
     
 
-def get_changelog(ref_ver_data, new_ver_data):
+def get_changelog(ref_ver_data, new_ver_data, extra=None):
     changelog = 'No changelog'
     return(changelog)

@@ -58,12 +58,16 @@ class ReleaseNotifier():
     refdir: The directory holding the reference version value for the
             dependency to be queried.
     '''
-    def __init__(self, depname, params, refdir):
+    def __init__(self, depname, params, refdir, gh_username, gh_password):
         # Normalize path-like dependency names.
         self.dep_name = depname
         self.depchecker = None
         self.params = params
         self.dep_config = DepConfig()
+        self.github = None
+        self.plugin_extra = None  # Optional extra data to pass to a plugin.
+        self.gh_username = gh_username
+        self.gh_password = gh_password
         self.refdir = refdir
         self.ref_file = self.gen_ref_filename()
         self.new_ver_data = None
@@ -87,17 +91,20 @@ class ReleaseNotifier():
         norm_depname = self.dep_name.replace('/', '-')
         return os.path.join(self.refdir, '{}_reference'.format(norm_depname))
 
-    def query_remote(self):
+    def load_plugin(self):
         if len(self.params.keys()) == 0:
             plugin_name = f'.plugins.relcheck_{depname}'
         else:
             plugin_name = '.plugins.' + self.params['plugin'].strip()
-        print(f' using plugin {plugin_name}')
         print(f'plugin_name = {plugin_name}')
         try:
             self.depchecker = importlib.import_module(plugin_name, 'harbinger')
         except Exception as e:
             print(f'Import of plugin {plugin_name} failed.\n\n')
+        if 'github' in plugin_name:
+            print('Authenticating with github API...')
+            self.github = github3.login(self.gh_username, self.gh_password)
+            self.plugin_extra = self.github
 
     def get_version(self):
         '''Call the version retrieval method of a plugin.
@@ -111,7 +118,7 @@ class ReleaseNotifier():
         the dependency in question which is a dict containing at least a
         'version' key.
         '''
-        return self.depchecker.get_version(self.dep_name, self.params)
+        return self.depchecker.get_version(self.dep_name, self.params, self.plugin_extra)
 
     def get_changelog(self, ref_ver_data, new_ver_data):
         '''Call the changelog retrieval method of a plugin.
@@ -124,7 +131,8 @@ class ReleaseNotifier():
         Return value of the get_changelog method of the plugin associated with
         the dependency in question which is a string.
         '''
-        return self.depchecker.get_changelog(ref_ver_data, new_ver_data)
+        print(self.plugin_extra)
+        return self.depchecker.get_changelog(ref_ver_data, new_ver_data, self.plugin_extra)
 
     def new_version(self):
         '''Determine if the version of this dependency is newer than the value
@@ -174,9 +182,10 @@ class ReleaseNotifier():
             print(self.comment)
         else:
             print('Posting comment to Github...')
-            gh = github3.login(args.username, password=password)
+            if not self.github:
+                gh = github3.login(args.username, password=password)
             repo = args.notify_repo.split('/')
-            gh.create_issue(repo[0], repo[1], self.issue_title, self.comment)
+            self.github.create_issue(repo[0], repo[1], self.issue_title, self.comment)
 
     def write_version_ref(self):
         with open(self.ref_file, 'w') as f:
@@ -213,7 +222,7 @@ class ReleaseNotifier():
             shutilcopy(self.ref_backup, self.ref_file)
 
     def check_for_release(self):
-        self.query_remote()
+        self.load_plugin()
         with tempfile.TemporaryDirectory() as self.tmpdir:
             with pushd(self.tmpdir):
                 self.new_ver_data = self.get_version()
