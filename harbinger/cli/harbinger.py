@@ -92,7 +92,8 @@ def main():
     for depname in depnames:
         print(f'Querying remote dependency {depname}', end='')
         params = dict(config[depname])
-        print(params)
-        print(username)
         n = ReleaseNotifier(depname, params, refdir, username, password)
-        n.check_for_release()
+        try:
+            n.check_for_release()
+        except Exception as e:
+            print(f'Failure in check_for_release() of {depname}.')

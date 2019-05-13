@@ -23,6 +23,7 @@ import importlib
 
 import yaml
 import getpass
+from abc import ABC, abstractmethod
 import github3
 
 
@@ -41,9 +42,18 @@ def pushd(newDir):
     os.chdir(previousDir)
 
 
-class DepConfig():
+class Plugin(ABC):
     def __init__(self):
+        super().__init__()
+
+    @abstractmethod
+    def get_version(self):
         pass
+
+    @abstractmethod
+    def get_changelog(self):
+        pass
+    
 
 
 class ReleaseNotifier():
@@ -63,8 +73,8 @@ class ReleaseNotifier():
         self.dep_name = depname
         self.depchecker = None
         self.params = params
-        self.dep_config = DepConfig()
         self.github = None
+        self.plugin = None
         self.plugin_extra = None  # Optional extra data to pass to a plugin.
         self.gh_username = gh_username
         self.gh_password = gh_password
@@ -101,6 +111,8 @@ class ReleaseNotifier():
             self.depchecker = importlib.import_module(plugin_name, 'harbinger')
         except Exception as e:
             print(f'Import of plugin {plugin_name} failed.\n\n')
+            raise(ImportError)
+        self.plugin = self.depchecker.plugin
         if 'github' in plugin_name:
             print('Authenticating with github API...')
             self.github = github3.login(self.gh_username, self.gh_password)
@@ -118,7 +130,8 @@ class ReleaseNotifier():
         the dependency in question which is a dict containing at least a
         'version' key.
         '''
-        return self.depchecker.get_version(self.dep_name, self.params, self.plugin_extra)
+        #return self.depchecker.get_version(self.dep_name, self.params, self.plugin_extra)
+        return self.plugin.get_version(self.dep_name, self.params, self.plugin_extra)
 
     def get_changelog(self, ref_ver_data, new_ver_data):
         '''Call the changelog retrieval method of a plugin.
@@ -131,8 +144,8 @@ class ReleaseNotifier():
         Return value of the get_changelog method of the plugin associated with
         the dependency in question which is a string.
         '''
-        print(self.plugin_extra)
-        return self.depchecker.get_changelog(ref_ver_data, new_ver_data, self.plugin_extra)
+        #return self.depchecker.get_changelog(ref_ver_data, new_ver_data, self.plugin_extra)
+        return self.plugin.get_changelog(ref_ver_data, new_ver_data, self.plugin_extra)
 
     def new_version(self):
         '''Determine if the version of this dependency is newer than the value
