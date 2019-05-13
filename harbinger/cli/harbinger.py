@@ -90,10 +90,11 @@ def main():
     # For each dependency defined in the config, query it for new releases
     # and post a notification if one is found.
     for depname in depnames:
-        print(f'Querying remote dependency {depname}', end='')
+        print(f'Querying remote dependency {depname}')
         params = dict(config[depname])
         n = ReleaseNotifier(depname, params, refdir, username, password)
         try:
             n.check_for_release()
         except Exception as e:
             print(f'Failure in check_for_release() of {depname}.')
+        print()
