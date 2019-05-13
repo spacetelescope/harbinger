@@ -58,10 +58,10 @@ class ReleaseNotifier():
     refdir: The directory holding the reference version value for the
             dependency to be queried.
     '''
-    def __init__(self, depname, checker, params, refdir):
+    def __init__(self, depname, params, refdir):
         # Normalize path-like dependency names.
         self.dep_name = depname
-        self.depchecker = checker
+        self.depchecker = None
         self.params = params
         self.dep_config = DepConfig()
         self.refdir = refdir
@@ -86,6 +86,18 @@ class ReleaseNotifier():
         '''
         norm_depname = self.dep_name.replace('/', '-')
         return os.path.join(self.refdir, '{}_reference'.format(norm_depname))
+
+    def query_remote(self):
+        if len(self.params.keys()) == 0:
+            plugin_name = f'.plugins.relcheck_{depname}'
+        else:
+            plugin_name = '.plugins.' + self.params['plugin'].strip()
+        print(f' using plugin {plugin_name}')
+        print(f'plugin_name = {plugin_name}')
+        try:
+            self.depchecker = importlib.import_module(plugin_name, 'harbinger')
+        except Exception as e:
+            print(f'Import of plugin {plugin_name} failed.\n\n')
 
     def get_version(self):
         '''Call the version retrieval method of a plugin.
@@ -201,6 +213,7 @@ class ReleaseNotifier():
             shutilcopy(self.ref_backup, self.ref_file)
 
     def check_for_release(self):
+        self.query_remote()
         with tempfile.TemporaryDirectory() as self.tmpdir:
             with pushd(self.tmpdir):
                 self.new_ver_data = self.get_version()

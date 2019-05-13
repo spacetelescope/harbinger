@@ -92,19 +92,6 @@ def main():
     for depname in depnames:
         print(f'Querying remote dependency {depname}', end='')
         params = dict(config[depname])
-        if len(config[depname].keys()) == 0:
-            plugin_name = f'.plugins.relcheck_{depname}'
-        else:
-            plugin_name = '.plugins.' + config[depname]['plugin'].strip()
-        print(f' using plugin {plugin_name}')
-        print(f'plugin_name = {plugin_name}')
-        print(f'config[{depname}] = {config[depname]}')
-        try:
-            #depchecker = importlib.import_module(plugin_name)
-            depchecker = importlib.import_module(plugin_name, 'harbinger')
-        except Exception as e:
-            print(f'Import of plugin {plugin_name} failed.\n\n')
-            continue
-        n = ReleaseNotifier(depname, depchecker, params, refdir)
+        n = ReleaseNotifier(depname, params, refdir)
         n.check_for_release()
         print()
