@@ -68,7 +68,7 @@ class ReleaseNotifier():
     refdir: The directory holding the reference version value for the
             dependency to be queried.
     '''
-    def __init__(self, depname, params, refdir, gh_username, gh_password):
+    def __init__(self, depname, params, refdir, gh_username=None, gh_password=None):
         # Normalize path-like dependency names.
         self.dep_name = depname
         self.depchecker = None
@@ -78,7 +78,7 @@ class ReleaseNotifier():
         self.plugin_extra = None  # Optional extra data to pass to a plugin.
         self.gh_username = gh_username
         self.gh_password = gh_password
-        self.refdir = refdir
+        self.refdir = os.path.abspath(refdir)
         self.ref_file = self.gen_ref_filename()
         self.new_ver_data = None
         self.md5 = None
@@ -86,14 +86,14 @@ class ReleaseNotifier():
         self.issue_title_base = 'Upstream release of dependency: '
         self.issue_title = self.issue_title_base + self.dep_name
         self.comment_base = ('This is a message from an automated system '
-                             'that monitors `{}` '
-                             'releases.\n'.format(self.dep_name))
+                'that monitors `{}` '
+                'releases.\n'.format(self.dep_name))
         self.dry_run = False
         self.remote_ver = None
 
     def gen_ref_filename(self):
         '''Generate reference filename
-        
+
         Returns
         -------
         Dependency-specific version reference identifier.
@@ -109,7 +109,7 @@ class ReleaseNotifier():
         print(f'plugin_name = {plugin_name}')
         try:
             self.depchecker = importlib.import_module(plugin_name, 'harbinger')
-        except Exception as e:
+        except ImportError as e:
             print(f'Import of plugin {plugin_name} failed.\n\n')
             raise(ImportError)
         self.plugin = self.depchecker.plugin
@@ -120,22 +120,21 @@ class ReleaseNotifier():
 
     def get_version(self):
         '''Call the version retrieval method of a plugin.
-        
+
         This is the version retrieval entry point for the plugin assigned
         as the release checker for this notifier instance.
-        
+
         Returns
         -------
         Return value of the get_version method of the plugin associated with
         the dependency in question which is a dict containing at least a
         'version' key.
         '''
-        #return self.depchecker.get_version(self.dep_name, self.params, self.plugin_extra)
         return self.plugin.get_version(self.dep_name, self.params, self.plugin_extra)
 
     def get_changelog(self, ref_ver_data, new_ver_data):
         '''Call the changelog retrieval method of a plugin.
-        
+
         This is the changelog retrieval entry point for the plugin assigned
         as the release checker for this notifier instance.
 
@@ -144,7 +143,6 @@ class ReleaseNotifier():
         Return value of the get_changelog method of the plugin associated with
         the dependency in question which is a string.
         '''
-        #return self.depchecker.get_changelog(ref_ver_data, new_ver_data, self.plugin_extra)
         return self.plugin.get_changelog(ref_ver_data, new_ver_data, self.plugin_extra)
 
     def new_version(self):
@@ -169,7 +167,7 @@ class ReleaseNotifier():
 
     def reference_available(self):
         '''Is version reference data available for the dependency?
-        
+
         Returns
         -------
         True if reference file is available.
@@ -196,23 +194,25 @@ class ReleaseNotifier():
         else:
             print('Posting comment to Github...')
             if not self.github:
-                gh = github3.login(args.username, password=password)
+                gh = github3.login(self.gh_username, password=self.gh_password)
             repo = args.notify_repo.split('/')
+            print('posting now')
             self.github.create_issue(repo[0], repo[1], self.issue_title, self.comment)
 
     def write_version_ref(self):
         with open(self.ref_file, 'w') as f:
-            reference = yaml.safe_dump(self.new_ver_data)
-            print(reference)
-            f.write(reference)
+            #reference = yaml.safe_dump(self.new_ver_data)
+            #print(reference)
+            #f.write(reference)
+            #print(f'WRITE VERSION REF {reference}')
+            f.write(str(self.new_ver_data))
 
     def update_version_ref(self):
         # Update version reference to inform the next run.
-        os.chdir(sys.path[0])
+        #os.chdir(sys.path[0])
         print('Backing up old version reference...')
         self.ref_backup = self.ref_file + '.bkup'
         shutil.copy(self.ref_file, self.ref_backup)
-
         print('Updating {} version refrence.  '.format(self.dep_name), end='')
         try:
             self.write_version_ref()
@@ -226,8 +226,6 @@ class ReleaseNotifier():
 
     def post_notification(self):
         self.update_version_ref()
-        # For each notification type desired, post one.
-        # TODO: support other notification types?
         try:
             self.create_github_issue()
         except e:
