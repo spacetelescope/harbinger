@@ -10,8 +10,11 @@ def main():
     
     username_envvar = 'HARBINGER_USER'
     password_envvar = 'HARBINGER_PW'
-    
-    parser = argparse.ArgumentParser(prog='harbinger')
+
+    descrip = (f'Poll a list of dependencies defined in the config file and '
+    f'post a notification via Github issue if a release newer than the latest'
+    f' logged version is available.\n')
+    parser = argparse.ArgumentParser(prog='harbinger', description=descrip)
     parser.add_argument('-p',
                         '--password',
                         action='store_true',
@@ -92,9 +95,9 @@ def main():
     for depname in depnames:
         print(f'Querying remote dependency {depname}')
         params = dict(config[depname])
-        n = ReleaseNotifier(depname, params, refdir, username, password)
+        noti = ReleaseNotifier(depname, params, refdir, username, password)
         try:
-            n.check_for_release()
+            noti.check_for_release()
         except Exception as e:
-            print(f'Failure in check_for_release() of {depname}.')
+            print(f'FAILURE in check_for_release() of {depname}.')
         print()
