@@ -43,20 +43,22 @@ def pushd(newDir):
 
 
 class Plugin(ABC):
-    def __init__(self, reference):
+    def __init__(self, params, reference):
         super().__init__()
         #self.ref_ver_data = None
         #self.new_ver_data = None
 
     @abstractmethod
     def new_version_available(self):
+        '''Is a new version of the dependency available?'''
         pass
 
     @abstractmethod
     def version_data(self):
         '''Return updated reference values that reflect what was obtained
         from the version query. All values returned here will become the
-        updated reference dictionary.'''
+        updated reference dictionary to use as the basis for future update
+        checks.'''
         pass
 
     @abstractmethod
@@ -79,6 +81,13 @@ class ReleaseNotifier():
                   (dict)
     refdir: The directory holding the reference version value for the
             dependency to be queried.
+    notify_repo: The Github repository that will receive an issue posting
+                 should a dependency update be detected.
+    gh_username: The Github username to use when authenticating for API
+                 access.
+    gh_password: The Github password (or access token value) to use when
+                 authenticating for API access.
+
     '''
     github = None
 
@@ -94,9 +103,7 @@ class ReleaseNotifier():
         self.dep_name = depname
         self.plugin_module = None
         self.params = params
-        #self.github = None
         self.plugin = None
-        self.plugin_extra = None  # Optional extra data to pass to a plugin.
         self.notify_repo = notify_repo
         self.gh_username = gh_username
         self.gh_password = gh_password
@@ -107,16 +114,15 @@ class ReleaseNotifier():
         self.ref_md5 = None
         self.issue_title_base = 'Upstream release of dependency: '
         self.issue_title = self.issue_title_base + self.dep_name
-        self.comment_base = ('This is a message from an automated system '
-                'that monitors `{}` '
-                'releases.\n'.format(self.dep_name))
+        self.comment_base = (f'This is a message from an automated system '
+                'that monitors `{self.dep_name}` releases.')
         self.dry_run = False
         self.remote_ver = None
         self.read_refs()
 
     def load_plugin(self):
         if len(self.params.keys()) == 0:
-            plugin_name = f'.plugins.relcheck_{depname}'
+            plugin_name = f'.plugins.relcheck_{self.dep_name}'
         else:
             plugin_name = '.plugins.' + self.params['plugin'].strip()
         print(f'plugin: {plugin_name}')
@@ -129,13 +135,25 @@ class ReleaseNotifier():
         # to provide a clean location for it to create files, if necessary.
         with tempfile.TemporaryDirectory() as tmpdir:
             with pushd(tmpdir):
-                self.plugin = self.plugin_module.plugin(self.refs[self.dep_name])
+                # If depdency is hosted on Github, pass in the local github object
+                # to use when making API queries, otherwise instantiate a normal
+                # plugin object.
+                if '/' in self.dep_name:  # Github dependency
+                    print('Authenticating with github API...')
+                    ReleaseNotifier.github = github3.login(self.gh_username, self.gh_password)
+                    self.params['name'] = self.dep_name
+                    self.plugin = self.plugin_module.plugin(
+                            self.params,
+                            self.refs[self.dep_name],
+                            ReleaseNotifier.github)
+                else:
+                    self.plugin = self.plugin_module.plugin(self.params,
+                                                  self.refs[self.dep_name])
                 # TODO: Detect special extra steps needed by interrogating
                 #       the plugin itself?
-                if 'github' in plugin_name:
-                    print('Authenticating with github API...')
-                    self.github = github3.login(self.gh_username, self.gh_password)
-                    self.plugin_extra = self.github
+                #if 'github' in plugin_name:
+                #    print('Authenticating with github API...')
+                #    self.github = github3.login(self.gh_username, self.gh_password)
 
     def new_version_available(self):
         return self.plugin.new_version_available()
@@ -173,11 +191,8 @@ class ReleaseNotifier():
             print(self.comment)
         else:
             print('Posting comment to Github...')
-            #if not self.github:
             if not ReleaseNotifier.github:
                 print('authenticating')
-                #self.github = github3.login(self.gh_username,
-                #                            password=self.gh_password)
                 ReleaseNotifier.github = github3.login(self.gh_username,
                                             password=self.gh_password)
             repo = self.notify_repo.split('/')

@@ -1,31 +1,24 @@
 # Github-specific version update checker
-# Two functions
-#   get_version()
-#   get_changelog()
-
+# This is a special case of the general plugin structure as it requires
+# an authenticated github3.py object to be available in order to perform
+# the version queries via the Github API. Other plugins do not have this
+# requirement and thus do not need the `github` argument on the __init__()
+# call.
+import copy
 from ..release_notifier import Plugin
 
-class plugin(Plugin):
+# TODO: Handle regex as a parameter to use when selecting tags?
 
-    def __init__(self):
-        pass
-    
-    def get_version(self, dep_id, params, github):
-        '''Check for new release via method specified in 'params'.
-        If the latest released version is later/greater than the value
-        stored in the cache, return data about the release, otherwise
-        return 'None'.'''
-    
-        #print('dep_id = {}'.format(dep_id)) 
-        #print('params = {}'.format(params))
-        version_info = None
-        owner = dep_id.split('/')[0]
-        repo = dep_id.split('/')[1]
-        # TODO: To prevent API limits being breached, the (authenticated) github3
-        # object from the calling script will need to make an appearance here.
-        #repo = github3.repository(owner, repo)
-        repo = github.repository(owner, repo)
-    
+class plugin():
+
+    def __init__(self, params, ref_ver_data, github):
+
+        self.ref_ver_data = ref_ver_data
+        self.new_ver_data = copy.deepcopy(self.ref_ver_data)
+
+        owner = params['name'].split('/')[0]
+        repo = params['name'].split('/')[1]
+        ghrepo = github.repository(owner, repo)
         # Determine the 'best' release version.
         # This will depend on how the repository is organized and how releases are done.
         # Easiest is if the repo uses Github releases consistently. Just query that.
@@ -35,36 +28,33 @@ class plugin(Plugin):
         #
         # What heuristic can be used to get only tags that look 'release-like'?
         release_style = params['release_style']
-    
         if release_style == 'github':
             print("Checking for a Github-style release...")
             try:
-                latestrel = repo.latest_release()
-                tag_name = latestrel.tag_name
+                latestrel = ghrepo.latest_release()
+                self.tag_name = latestrel.tag_name
             except(github3.exceptions.NotFoundError):
                 print('No Github release found for this repository.')
-                return(version_info)
             # Github release found, examine the tag.
             print('latestrel = {}'.format(latestrel))
-            print('tag_name  = {}'.format(tag_name))
-            if tag_name[0] == 'v':
-                version = tag_name[1:]
+            print('tag_name  = {}'.format(self.tag_name))
+            if self.tag_name[0] == 'v':
+                self.version = self.tag_name[1:]
             else:
-                version = tag_name
-            version_info = {}
-            version_info['version'] = version
-            
-    
+                self.version = self.tag_name
         if release_style == 'tag-only':
             print('Checking for a tag-style release...')
             print('Checking for tag of appropriate type to signify release...')
+            self.version = 'tagoly'
+        self.new_ver_data['version'] = self.version
     
-            version_info = {}
-            version_info['version'] = version
-    
-        return(version_info)
-    
+    def new_version_available(self):
+        return self.new_ver_data['version'] != self.ref_ver_data['version']
 
-    def get_changelog(self, ref_ver_data, new_ver_data, extra=None):
-        changelog = 'No changelog'
-        return(changelog)
+    def version_data(self):
+        '''Return reference dict with updated version and other values.'''
+        return(self.new_ver_data)
+
+    def get_extra(self):
+        return('No changelog')
+
