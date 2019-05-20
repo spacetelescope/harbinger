@@ -6,8 +6,11 @@
 from ..release_notifier import Plugin
 
 class plugin(Plugin):
+
+    def __init__(self):
+        pass
     
-    def get_version(dep_id, params, github):
+    def get_version(self, dep_id, params, github):
         '''Check for new release via method specified in 'params'.
         If the latest released version is later/greater than the value
         stored in the cache, return data about the release, otherwise
@@ -62,6 +65,6 @@ class plugin(Plugin):
         return(version_info)
     
 
-    def get_changelog(ref_ver_data, new_ver_data, extra=None):
+    def get_changelog(self, ref_ver_data, new_ver_data, extra=None):
         changelog = 'No changelog'
         return(changelog)
