@@ -8,7 +8,7 @@ from ..release_notifier import Plugin
 
 class plugin(Plugin):
 
-    def __init__(self, ref_ver_data):
+    def __init__(self, params, ref_ver_data):
         '''Download and extract key files from source tarball.
         Read in header file.
         Read in changelog file.'''
@@ -72,7 +72,7 @@ class plugin(Plugin):
         ref_soname = self.ref_ver_data['soname']
         if ref_soname != self.soname:
             latest_changes += (
-                    f'\n**NOTE: This release introduces a SONAME'
+                    f'  **NOTE: This release introduces a SONAME'
                     f'change from {ref_soname} to {self.soname}.**'
             )
         return(latest_changes)
