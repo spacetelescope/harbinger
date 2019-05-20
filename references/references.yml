@@ -2,4 +2,4 @@ cfitsio:
   soname: '7'
   version: '3.45'
 rendinam/auto-test:
-  version: tag_5
+  version: 1.0.1
