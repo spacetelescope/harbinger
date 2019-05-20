@@ -95,9 +95,15 @@ def main():
     for depname in depnames:
         print(f'Querying remote dependency {depname}')
         params = dict(config[depname])
-        noti = ReleaseNotifier(depname, params, refdir, username, password)
-        try:
-            noti.check_for_release()
-        except Exception as e:
-            print(f'FAILURE in check_for_release() of {depname}.')
+        noti = ReleaseNotifier(depname,
+                               params,
+                               refdir,
+                               args.notify_repo,
+                               username,
+                               password)
+        noti.check_for_release()
+        #try:
+        #    noti.check_for_release()
+        #except Exception as e:
+        #    print(f'FAILURE in check_for_release() of {depname}.')
         print()
