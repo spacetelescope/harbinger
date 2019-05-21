@@ -6,6 +6,7 @@ import copy
 
 from ..release_notifier import Plugin
 
+
 class plugin(Plugin):
 
     def __init__(self, params, ref_ver_data):
@@ -34,7 +35,6 @@ class plugin(Plugin):
         for line in self.header:
             if 'CFITSIO_VERSION' in line.strip():
                 self.version = line.strip().split()[2]
-                #print(f'New version       {self.version}')
                 self.new_ver_data['version'] = self.version
                 break
         # Extract SONAME value from the source code. Update new_ver_data.
@@ -42,7 +42,6 @@ class plugin(Plugin):
         for line in self.header:
             if 'CFITSIO_SONAME' in line.strip():
                 self.soname = line.strip().split()[2]
-                #print(f'New SONAME        {self.soname}')
                 self.new_ver_data['soname'] = self.soname
                 break
 
@@ -69,10 +68,18 @@ class plugin(Plugin):
             if sec_open:
                 latest_changes += line
                 continue
+        # If extraction of latest changelog entry fails, just grab the
+        # first 20 lines of the changelog.
+        if latest_changes == '':
+            for line in self.changelog[0:21]:
+                latest_changes += line
+        latest_changes += ('\n\n(For complete changelog information,'
+                          ' consult the package changelog file in'
+                          ' cfitsio/doc/changes.txt)  ')
         ref_soname = self.ref_ver_data['soname']
         if ref_soname != self.soname:
             latest_changes += (
-                    f'  **NOTE: This release introduces a SONAME'
+                    f'\n\n\n  **NOTE: This release introduces a SONAME '
                     f'change from {ref_soname} to {self.soname}.**'
             )
         return(latest_changes)
