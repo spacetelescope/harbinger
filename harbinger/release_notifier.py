@@ -9,65 +9,27 @@
 # modules.
 
 import os
-import sys
-import configparser
-import urllib.request
-import subprocess
-from subprocess import run
-import tarfile
-import tempfile
-import argparse
-import shutil
-from contextlib import contextmanager
 import importlib
+import tempfile
 
 import yaml
-import getpass
-from abc import ABC, abstractmethod
 import github3
+from .utils import pushd
 
 
-@contextmanager
-def pushd(newDir):
-    '''Context manager function for shell-like pushd functionality
-
-    Allows for constructs like:
-    with pushd(directory):
-        'code'...
-    When 'code' is finished, the working directory is restored to what it
-    was when pushd was invoked.'''
-    previousDir = os.getcwd()
-    os.chdir(newDir)
-    yield
-    os.chdir(previousDir)
-
-
-class Plugin(ABC):
-    def __init__(self, params, reference):
-        super().__init__()
-        #self.ref_ver_data = None
-        #self.new_ver_data = None
-
-    @abstractmethod
-    def new_version_available(self):
-        '''Is a new version of the dependency available?'''
-        pass
-
-    @abstractmethod
-    def version_data(self):
-        '''Return updated reference values that reflect what was obtained
-        from the version query. All values returned here will become the
-        updated reference dictionary to use as the basis for future update
-        checks.'''
-        pass
-
-    @abstractmethod
-    def get_extra(self):
-        '''Obtain any extra information the plugin has decided to provide
-        for inclusion in the notification message. Things like changelog
-        entries, API version specifics, etc, may be returned here.'''
-        pass
-    
+#@contextmanager
+#def pushd(newDir):
+#    '''Context manager function for shell-like pushd functionality
+#
+#    Allows for constructs like:
+#    with pushd(directory):
+#        'code'...
+#    When 'code' is finished, the working directory is restored to what it
+#    was when pushd was invoked.'''
+#    previousDir = os.getcwd()
+#    os.chdir(newDir)
+#    yield
+#    os.chdir(previousDir)
 
 
 class ReleaseNotifier():
@@ -84,9 +46,9 @@ class ReleaseNotifier():
     notify_repo: The Github repository that will receive an issue posting
                  should a dependency update be detected.
     gh_username: The Github username to use when authenticating for API
-                 access.
+                 access. Default value: None
     gh_password: The Github password (or access token value) to use when
-                 authenticating for API access.
+                 authenticating for API access. Default value: None
 
     '''
     github = None
@@ -99,7 +61,6 @@ class ReleaseNotifier():
                  gh_username=None,
                  gh_password=None):
 
-        # Normalize path-like dependency names.
         self.dep_name = depname
         self.plugin_module = None
         self.params = params
@@ -115,19 +76,24 @@ class ReleaseNotifier():
         self.issue_title_base = 'Upstream release of dependency: '
         self.issue_title = self.issue_title_base + self.dep_name
         self.comment_base = (f'This is a message from an automated system '
-                'that monitors `{self.dep_name}` releases.')
+                             f'that monitors `{self.dep_name}` releases.\n\n')
         self.dry_run = False
         self.remote_ver = None
         self.read_refs()
 
     def load_plugin(self):
-        if len(self.params.keys()) == 0:
-            plugin_name = f'.plugins.relcheck_{self.dep_name}'
+        if '/' in self.dep_name:  # Github dependency
+            plugin_name = f'.plugins.relcheck_github'
+            if not ReleaseNotifier.github:
+                print('Authenticating with github API...')
+                ReleaseNotifier.github = github3.login(
+                                                self.gh_username,
+                                                password=self.gh_password)
         else:
-            plugin_name = '.plugins.' + self.params['plugin'].strip()
+            plugin_name = f'.plugins.relcheck_{self.dep_name}'
         print(f'plugin: {plugin_name}')
         try:
-            self.plugin_module= importlib.import_module(plugin_name, 'harbinger')
+            self.plugin_module = importlib.import_module(plugin_name, 'harbinger')
         except ImportError as e:
             print(f'Import of plugin {plugin_name} failed.\n\n')
             raise(ImportError)
@@ -139,8 +105,6 @@ class ReleaseNotifier():
                 # to use when making API queries, otherwise instantiate a normal
                 # plugin object.
                 if '/' in self.dep_name:  # Github dependency
-                    print('Authenticating with github API...')
-                    ReleaseNotifier.github = github3.login(self.gh_username, self.gh_password)
                     self.params['name'] = self.dep_name
                     self.plugin = self.plugin_module.plugin(
                             self.params,
@@ -149,11 +113,6 @@ class ReleaseNotifier():
                 else:
                     self.plugin = self.plugin_module.plugin(self.params,
                                                   self.refs[self.dep_name])
-                # TODO: Detect special extra steps needed by interrogating
-                #       the plugin itself?
-                #if 'github' in plugin_name:
-                #    print('Authenticating with github API...')
-                #    self.github = github3.login(self.gh_username, self.gh_password)
 
     def new_version_available(self):
         return self.plugin.new_version_available()
@@ -163,9 +122,6 @@ class ReleaseNotifier():
 
     def get_extra(self):
         return self.plugin.get_extra()
-
-    def get_new_reference(self):
-        return self.plugin.get_new_reference()
 
     def read_refs(self):
         with open(self.refs_file) as f:
@@ -185,14 +141,14 @@ class ReleaseNotifier():
             return False
 
     def post_github_issue(self):
-        # Push changes text to a new/existing issue on Github.
-        self.comment = self.comment_base + '/n' + self.comment
+        # Push changes text to a new issue on Github.
+        self.comment = self.comment_base + self.comment
         if self.dry_run:
             print(self.comment)
         else:
             print('Posting comment to Github...')
             if not ReleaseNotifier.github:
-                print('authenticating')
+                print('Authenticating with github API...')
                 ReleaseNotifier.github = github3.login(self.gh_username,
                                             password=self.gh_password)
             repo = self.notify_repo.split('/')
@@ -206,10 +162,6 @@ class ReleaseNotifier():
         with open(self.refs_file, 'w') as f:
             f.write(yaml.safe_dump(self.refs))
 
-    def update_ref_data(self):
-        '''Update version reference to inform the next run.'''
-        self.refs[self.dep_name] = self.version_data()
-
     def check_for_release(self):
         self.load_plugin()
         if self.new_version_available():
@@ -221,7 +173,8 @@ class ReleaseNotifier():
                     os.path.join(self.refdir, self.refs_file)))
             print(f'Reference: {self.refs[self.dep_name]}')
             self.comment = self.get_extra()
-            self.update_ref_data()
+            # Update reference data
+            self.refs[self.dep_name] = self.version_data()
             print(f'New      : {self.refs[self.dep_name]}')
             self.write_refs()
             # TODO: Implement version roll-back if issue posting fails.
