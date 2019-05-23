@@ -5,7 +5,7 @@
 # requirement and thus do not need the `github` argument on the __init__()
 # call.
 import copy
-from ..release_notifier import Plugin
+import github3
 
 # TODO: Handle regex as a parameter to use when selecting tags?
 
@@ -32,9 +32,9 @@ class plugin():
             print("Checking for a Github-style release...")
             try:
                 latestrel = ghrepo.latest_release()
-                self.tag_name = latestrel.tag_name
-            except(github3.exceptions.NotFoundError):
+            except Exception as e:  # TODO: can this be more specific?
                 print('No Github release found for this repository.')
+            self.tag_name = latestrel.tag_name
             # Github release found, examine the tag.
             print('latestrel = {}'.format(latestrel))
             print('tag_name  = {}'.format(self.tag_name))
