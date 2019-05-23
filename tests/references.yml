@@ -1,0 +1,10 @@
+test:
+    version: '0.0.0'
+
+    #cfitsio:
+    #    version: '3.45'
+    #    soname: '7'
+    #
+    #rendinam/auto-test:
+    #    version: 'tag_5'
+ 
