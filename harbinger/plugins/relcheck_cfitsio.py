@@ -1,4 +1,5 @@
 # cfitsio-specific version update checker
+import os
 import urllib.request
 import tarfile
 import copy
@@ -15,8 +16,6 @@ class plugin(plugin.Plugin):
         self.ref_ver_data = ref_ver_data
         self.new_ver_data = copy.deepcopy(self.ref_ver_data)
 
-        fitsio_h = 'cfitsio/fitsio.h'
-        changesfile = 'cfitsio/docs/changes.txt'
         if tarball:
             latest_tar = tarball
         else:
@@ -25,11 +24,18 @@ class plugin(plugin.Plugin):
             urllib.request.urlretrieve(latest_URL, latest_tar)
     
         tfile = tarfile.open(latest_tar, mode='r')
-        tfile.extract(fitsio_h)
-        tfile.extract(changesfile)
-        with open(fitsio_h, 'r') as f:
+        members = tfile.getmembers()
+        for member in members:
+            bname = os.path.basename(member.path)
+            if bname == 'fitsio.h':
+                tfile.extract(member.path)
+                fitsio_h_path = member.path
+            if bname == 'changes.txt':
+                tfile.extract(member.path)
+                changesfile_path = member.path
+        with open(fitsio_h_path, 'r') as f:
             self.header = f.readlines()
-        with open(changesfile) as f:
+        with open(changesfile_path) as f:
             self.changelog = f.readlines()
         # Extract version value from the source code. Update new_ver_data.
         for line in self.header:
