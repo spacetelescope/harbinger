@@ -29,15 +29,15 @@ class plugin():
         # What heuristic can be used to get only tags that look 'release-like'?
         release_style = params['release_style']
         if release_style == 'github':
-            print("Checking for a Github-style release...")
+            #print("Checking for a Github-style release...")
             try:
                 latestrel = ghrepo.latest_release()
             except Exception as e:  # TODO: can this be more specific?
                 print('No Github release found for this repository.')
             self.tag_name = latestrel.tag_name
             # Github release found, examine the tag.
-            print('latestrel = {}'.format(latestrel))
-            print('tag_name  = {}'.format(self.tag_name))
+            #print('latestrel = {}'.format(latestrel))
+            #print('tag_name  = {}'.format(self.tag_name))
             if self.tag_name[0] == 'v':
                 self.version = self.tag_name[1:]
             else:
