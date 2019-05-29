@@ -30,11 +30,9 @@ class ReleaseNotifier():
             dependency to be queried.
     notify_repo: The Github repository that will receive an issue posting
                  should a dependency update be detected.
-    gh_username: The Github username to use when authenticating for API
-                 access. Default value: None
-    gh_password: The Github password (or access token value) to use when
-                 authenticating for API access. Default value: None
-
+    gh: A github3.py object to use when interacting with Github.
+        NOTE: Must be an authenticated connection if issues are to be posted
+        successfully.
     '''
     github = None
 
@@ -44,16 +42,15 @@ class ReleaseNotifier():
                  params,
                  ref,
                  notify_repo,
-                 gh_username=None,
-                 gh_password=None):
+                 gh):
 
         self.dep_name = depname
         self.plugin_module = None
         self.params = params
         self.plugin = None
         self.notify_repo = notify_repo
-        self.gh_username = gh_username
-        self.gh_password = gh_password
+        if not ReleaseNotifier.github:
+            ReleaseNotifier.github = gh
         self.ref = ref
         self.issue_title_base = 'Upstream release of dependency: '
         self.issue_title = self.issue_title_base + self.dep_name
@@ -65,14 +62,8 @@ class ReleaseNotifier():
     def load_plugin(self):
         if '/' in self.dep_name:  # Github dependency
             plugin_name = f'.plugins.relcheck_github'
-            if not ReleaseNotifier.github:
-                print('Authenticating with github API...')
-                ReleaseNotifier.github = github3.login(
-                                                self.gh_username,
-                                                password=self.gh_password)
         else:
             plugin_name = f'.plugins.relcheck_{self.dep_name}'
-        print(f'plugin: {plugin_name}')
         try:
             self.plugin_module = importlib.import_module(plugin_name, 'harbinger')
         except ImportError as e:
@@ -87,7 +78,7 @@ class ReleaseNotifier():
                 # plugin object.
                 if '/' in self.dep_name:  # Github dependency
                     self.params['name'] = self.dep_name
-                    print(f'self.ref = {self.ref}')
+                    #print(f'self.ref = {self.ref}')
                     self.plugin = self.plugin_module.plugin(
                             self.params,
                             self.ref,
@@ -105,30 +96,13 @@ class ReleaseNotifier():
     def get_extra(self):
         return self.plugin.get_extra()
 
-    def reference_available(self):
-        '''Is version reference data available for the dependency?
-
-        Returns
-        -------
-        True if reference file is available.
-        False otherwise.
-        '''
-        if self.dep_name in self.ref.keys():
-            return True
-        else:
-            return False
-
     def post_github_issue(self, reponame):
         # Push changes text to a new issue on Github.
         if self.dry_run:
             print(self.comment)
         else:
-            if not ReleaseNotifier.github:
-                print('Authenticating with github API...')
-                ReleaseNotifier.github = github3.login(self.gh_username,
-                                            password=self.gh_password)
             repo = reponame.split('/')
-            print('Posting comment to Github...')
+            print(f'Posting {self.dep_name} version update notice to {repo[1]}...')
             ReleaseNotifier.github.create_issue(repo[0],
                     repo[1],
                     self.issue_title,
@@ -138,18 +112,11 @@ class ReleaseNotifier():
         self.load_plugin()
         if self.new_version_available():
             print(f'A version change has been detected for {self.dep_name}')
-            #if not self.reference_available():
-            #    print('No existing version reference found for {}'.format(
-            #        self.dep_name))
             print(f'Reference: {self.ref}')
             self.comment = self.get_extra()
             # Update reference data
-            #self.ref[self.dep_name] = self.version_data()
             self.ref = self.version_data()
             print(f'New      : {self.ref}')
-            #self.write_refs()
-            # TODO: Implement version roll-back if issue posting fails.
-            #self.post_github_issue()
             self.new_version_detected = True
             self.comment = self.comment_base + self.comment
             return True
