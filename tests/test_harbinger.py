@@ -47,10 +47,25 @@ def notifier():
                         gh)
     return(n)
 
+@pytest.fixture(scope='module')
+def notifier_plugin_dne():
+    gh = mock_gh('tagname')
+    n = ReleaseNotifier('plugin_dne',
+                        params,
+                        reference,
+                        notify_repo,
+                        gh)
+    return(n)
+
 #-----
 
 def test_load_plugin(notifier):
     notifier.load_plugin()
+
+
+def test_load_plugin_failure(notifier_plugin_dne):
+    with pytest.raises(ImportError) as e_info:
+        notifier_plugin_dne.load_plugin()
 
 
 def test_new_version_available(notifier):
@@ -69,13 +84,6 @@ def test_get_extra(notifier):
 
 
 #def test_post_github_issue():
-#    pass
-
-
-#def test_full_check():
-#    noti = ReleaseNotifier(depname, params, refdir)
-#    noti.check_for_release()
 
 
 #def test_harbinger_cli():
-
