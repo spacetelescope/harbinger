@@ -3,41 +3,13 @@ import shutil
 import pytest
 from ..plugins import relcheck_github
 from ..utils import pushd
+from ..mock_github3 import *
 
 params = {'name': 'org/reponame', 'release_style': 'github'}
 test_reference = {'version': '1.0.0', 'soname': '1'}
 test_dir = 'tests'
 changelog = 'No changelog'
 
-
-# Class hierarchy used to mock the components of github3.py
-# used by the github plugin.
-class mock_gh_release():
-    def __init__(self, tag):
-        self.tag_name = tag
-
-class mock_gh_repository():
-    def __init__(self, tag, release=True):
-        self.tag = tag
-        self.release = release
-    def latest_release(self):
-        if self.release:
-            return(mock_gh_release(self.tag))
-
-class mock_gh_repository_no_rel():
-    def __init__(self, tag, release=True):
-        self.tag = tag
-        self.release = release
-
-class mock_gh():
-    def __init__(self, tag, release=True):
-        self.tag = tag
-        self.release = release
-    def repository(self, owner, repo):
-        if self.release:
-            return(mock_gh_repository(self.tag, self.release))
-        else:
-            return(mock_gh_repository_no_rel(self.tag, self.release))
 
 # Test functions
 
