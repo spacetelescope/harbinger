@@ -52,15 +52,8 @@ def main():
                         '--org',
                         type=str,
                         help='Github organization (or user account) scan.')
-    parser.add_argument('-n',
-                        '--notify_repo',
-                        type=str,
-                        help='Required. Repository in which an issue comment '
-                        'should be posted. Specified in the form '
-                        '<organization>/<repository>')
    
     args = parser.parse_args()
-    
 
     if not args.dry_run:
         if not args.username:
@@ -97,24 +90,8 @@ def main():
     username = os.environ[username_envvar]
     password = os.environ[password_envvar]
     
-    
     scanner = Scanner(org, 'references', username, password)
     repos = scanner.get_repos()
     scanner.scan()
-    #print(scanner.dep_requests)
-
     scanner.check_for_releases()
     scanner.write_refs()
-
-    #print('\nDependencies processed')
-    #for repo in scanner.dep_requests:
-    #    print(repo)
-    #    print(scanner.dep_requests[repo].keys())
-    #    for dep in scanner.notifiers.keys():
-    #        if dep in scanner.dep_requests[repo].keys():
-    #            print(f'Notification sent for {dep}')
-    #    
-    #for dep in scanner.notifiers.keys():
-    #    print(dep)
-    
-    
