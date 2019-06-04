@@ -80,17 +80,17 @@ def main():
                           password_envvar))
                 sys.exit(1)
     
-    if not args.refdir:
-        refdir = './'
-    else:
+    if args.refdir:
         refdir = args.refdir
+    else:
+        refdir = './'
 
     org = args.org
     
     username = os.environ[username_envvar]
     password = os.environ[password_envvar]
     
-    scanner = Scanner(org, 'references', username, password)
+    scanner = Scanner(org, refdir, username, password)
     repos = scanner.get_repos()
     scanner.scan()
     scanner.check_for_releases()
