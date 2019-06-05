@@ -31,11 +31,12 @@ def main():
                         help=f'Prompt for interactive password entry. Overrides'
                         ' default behavior of accepting the password to use via '
                         ' the environment variable {password_envvar}.')
-    parser.add_argument('-d',
-                        '--dry-run',
-                        action='store_true',
-                        help='All output to local console. Does not communicate '
-                        ' with Github.')
+    # TODO: Flesh out this functionality.
+    #parser.add_argument('-d',
+    #                    '--dry-run',
+    #                    action='store_true',
+    #                    help='All output to local console. Does not communicate '
+    #                    ' with Github.')
     parser.add_argument('-u',
                         '--username',
                         type=str,
@@ -55,30 +56,30 @@ def main():
    
     args = parser.parse_args()
 
-    if not args.dry_run:
-        if not args.username:
-            try:
-                username = os.environ[username_envvar]
-            except KeyError:
-                print('Environment variable {} not defined.')
-                print('Store the Github password in that variable or run with '
-                      '`-p` to prompt for the password interactively.'.format(
-                          username_envvar))
-                sys.exit(1)
-        else:
-            username = args.username
+    #if not args.dry_run:
+    if not args.username:
+        try:
+            username = os.environ[username_envvar]
+        except KeyError:
+            print('Environment variable {} not defined.')
+            print('Store the Github password in that variable or run with '
+                  '`-p` to prompt for the password interactively.'.format(
+                      username_envvar))
+            sys.exit(1)
+    else:
+        username = args.username
     
-        if args.password:
-            password = getpass.getpass()
-        else:
-            try:
-                password = os.environ[password_envvar]
-            except KeyError:
-                print('Environment variable {} not defined.')
-                print('Store the Github password in that variable or run with '
-                      '`-p` to prompt for the password interactively.'.format(
-                          password_envvar))
-                sys.exit(1)
+    if args.password:
+        password = getpass.getpass()
+    else:
+        try:
+            password = os.environ[password_envvar]
+        except KeyError:
+            print('Environment variable {} not defined.')
+            print('Store the Github password in that variable or run with '
+                  '`-p` to prompt for the password interactively.'.format(
+                      password_envvar))
+            sys.exit(1)
     
     if args.refdir:
         refdir = args.refdir
@@ -90,6 +91,7 @@ def main():
     username = os.environ[username_envvar]
     password = os.environ[password_envvar]
     
+    #scanner = Scanner(org, refdir, username, password, args.dry_run)
     scanner = Scanner(org, refdir, username, password)
     repos = scanner.get_repos()
     scanner.scan()

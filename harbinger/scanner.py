@@ -8,7 +8,12 @@ from .release_notifier import *
 
 class Scanner():
 
-    def __init__(self, org, refdir, username=None, password=None):
+    def __init__(self,
+                 org,
+                 refdir,
+                 username=None,
+                 password=None,
+                 dry_run=False):
         self.refs = None
         self.org = org
         self.refdir = os.path.abspath(refdir)
@@ -20,6 +25,8 @@ class Scanner():
         self.cfg_file = 'harbinger.cfg'
         self.username = username
         self.password = password
+        self.dry_run = dry_run
+        print(f'username {username}')
         self.gh = github3.GitHub(username, password)
         self.acc = self.gh.user(org)
 
@@ -82,7 +89,8 @@ class Scanner():
                                            self.dep_requests[repo][dep],
                                            ref,
                                            f'{self.org}/{repo}',
-                                           self.gh)
+                                           self.gh,
+                                           dry_run=self.dry_run)
                     noti.check_for_release()
                     self.notifiers[dep] = noti
                     if noti.new_version_detected:

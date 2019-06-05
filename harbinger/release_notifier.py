@@ -33,6 +33,9 @@ class ReleaseNotifier():
     gh: A github3.py object to use when interacting with Github.
         NOTE: Must be an authenticated connection if issues are to be posted
         successfully.
+    dry_run: If True, no attempt to actually post an issue to Github will be
+             made.
+             Default value: False
     '''
     github = None
 
@@ -42,7 +45,8 @@ class ReleaseNotifier():
                  params,
                  ref,
                  notify_repo,
-                 gh):
+                 gh,
+                 dry_run=False):
 
         self.dep_name = depname
         self.plugin_module = None
@@ -56,7 +60,7 @@ class ReleaseNotifier():
         self.issue_title = self.issue_title_base + self.dep_name
         self.comment_base = (f'This is a message from an automated system '
                              f'that monitors `{self.dep_name}` releases.\n\n')
-        self.dry_run = False
+        self.dry_run = dry_run
         self.remote_ver = None
 
     def load_plugin(self):
