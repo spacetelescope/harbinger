@@ -1,5 +1,5 @@
 # harbinger
-Send Github issue notifications to a repository containing information about a newly released version when select project dependencies are released upstream.
+Send Github issue notifications to a repository containing information about newly released versions of select dependencies when upstream releases of those are detected.
 
 # Administrator Setup
 This software is meant to be run as a periodically scheduled service (cron job) with appropriate Github credentials to allow it to post issues on the repositories in the organization or user account specified in the service's configuration.
