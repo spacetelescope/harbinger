@@ -10,6 +10,6 @@ bc0.conda_packages = [
 bc0.build_cmds = [
     "pip install -e .[test]",
 ]
-bc0.test_cmds = ['pytest -r sx --basetemp=test_results junitxml=results.xml']
+bc0.test_cmds = ['pytest -r sx --basetemp=test_results --junitxml=results.xml']
 
 utils.run([bc0])
