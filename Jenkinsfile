@@ -8,7 +8,7 @@ bc0.conda_packages = [
     "python=3.6"
 ]
 bc0.build_cmds = [
-    "pip install -e .",
+    "pip install -e .[test]",
 ]
 bc0.test_cmds = ['pytest -r sx --basetemp=test_results junitxml=results.xml']
 
