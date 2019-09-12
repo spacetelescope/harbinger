@@ -1,5 +1,6 @@
 import os
 import urllib
+from urllib import request
 import configparser
 import yaml
 import github3
@@ -31,8 +32,8 @@ class Scanner():
         self.acc = self.gh.user(org)
 
     def getjson(self, url):
-        request = urllib.request.Request(url)
-        result = urllib.request.urlopen(request)
+        req = request.Request(url)
+        result = request.urlopen(req)
         payload = result.read()
         jdata = json.loads(payload.decode())
         return jdata
@@ -62,9 +63,9 @@ class Scanner():
             #       file blob.
             base_url = 'https://raw.githubusercontent.com/'
             url = f'{base_url}{self.org}/{repo}/master/{self.cfg_file}'
-            request = urllib.request.Request(url)
+            req = request.Request(url)
             try:
-                result = urllib.request.urlopen(request)
+                result = request.urlopen(req)
             except urllib.error.HTTPError as e:
                 continue
             print(f'{repo}: Found config')
