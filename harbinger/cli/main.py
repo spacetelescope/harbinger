@@ -61,7 +61,7 @@ def main():
         try:
             username = os.environ[username_envvar]
         except KeyError:
-            print('Environment variable {} not defined.')
+            print(f'Environment variable {username_envvar} not defined.')
             print('Store the Github password in that variable or run with '
                   '`-p` to prompt for the password interactively.'.format(
                       username_envvar))
