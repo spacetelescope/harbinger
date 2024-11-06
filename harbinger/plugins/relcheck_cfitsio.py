@@ -25,6 +25,7 @@ class plugin(plugin.Plugin):
     
         tfile = tarfile.open(latest_tar, mode='r')
         members = tfile.getmembers()
+        changesfile_path = ""
         for member in members:
             bname = os.path.basename(member.path)
             if bname == 'fitsio.h':
