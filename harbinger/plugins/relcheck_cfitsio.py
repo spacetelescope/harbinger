@@ -31,7 +31,7 @@ class plugin(plugin.Plugin):
             if bname == 'fitsio.h':
                 tfile.extract(member.path)
                 fitsio_h_path = member.path
-            if bname == 'changes.txt':
+            if bname == 'changes.txt' or bname == "ChangeLog":
                 tfile.extract(member.path)
                 changesfile_path = member.path
         with open(fitsio_h_path, 'r') as f:
